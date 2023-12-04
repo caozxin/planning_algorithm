@@ -1,5 +1,7 @@
 import numpy as np
 from collections import deque
+# from search import Problem, GameStateProblem
+
 class BoardState:
     """
     Represents a state in the game
@@ -103,10 +105,10 @@ class BoardState:
             for (col, row ) in self.decode_state:
                 
                 # print((col, row), i)
-                if i == 5 and row == 7:
+                if i == 5 and row == 7: # if white ball reachs top row
                     # print("is_termination_state == True")
                     return True
-                elif i == 11 and row == 0:
+                elif i == 11 and row == 0: # if black ball reachs botton row
                     ("is_termination_state == True")
                     return True
                 i += 1
@@ -353,7 +355,7 @@ class GameSimulator:
 
     def __init__(self, players):
         self.game_state = BoardState()
-        self.current_round = -1 ## The game starts on round 0; white's move on EVEN rounds; black's move on ODD rounds
+        self.current_round = -1 ## The game starts on round 0; white's move on EVEN rounds; black's move on ODD rounds # self.current_round = -1
         self.players = players
 
     def run(self):
@@ -363,13 +365,18 @@ class GameSimulator:
         while not self.game_state.is_termination_state():
             ## Determine the round number, and the player who needs to move
             self.current_round += 1
+            # if self.current_round >= 5: # NOTE remove this when you fix the heuristic value function! 
+            #     break
             player_idx = self.current_round % 2
             ## For the player who needs to move, provide them with the current game state
             ## and then ask them to choose an action according to their policy
             action, value = self.players[player_idx].policy( self.game_state.make_state() )
             print(f"Round: {self.current_round} Player: {player_idx} State: {tuple(self.game_state.state)} Action: {action} Value: {value}")
-
+            print("validate_action", action )
+            print("current player_idx", player_idx)
             if not self.validate_action(action, player_idx):
+                
+                print("validate_action", action )
                 ## If an invalid action is provided, then the other player will be declared the winner
                 if player_idx == 0:
                     return self.current_round, "BLACK", "White provided an invalid action"
@@ -468,6 +475,8 @@ class GameSimulator:
         
         TODO: You need to implement this.
         """
+        print("action", action)
+        print("generate_valid_actions", self.generate_valid_actions(player_idx))
         if action in self.generate_valid_actions(player_idx):
             return True
         else:
@@ -485,12 +494,76 @@ class GameSimulator:
         self.game_state.update(offset_idx + idx, pos)
 
 
-# Create a BoardState object
+class Player:
+    def __init__(self, policy_fnc):
+        self.policy_fnc = policy_fnc
+    def policy(self, decode_state):
+        pass
+
+class AdversarialSearchPlayer(Player):
+    def __init__(self, gsp, player_idx):
+        """
+        You can customize the signature of the constructor above to suit your needs.
+        In this example, in the above parameters, gsp is a GameStateProblem, and
+        gsp.adversarial_search_method is a method of that class.
+
+        test command: python test_search.py -k test_adversarial_search
+
+        Note:
+        1) we will only grade the player class called AdversarialSearchPlayer
+        located in the game.py file. 
+        2) Your adversarial algorithms should be added to search.py under GameStateProblem; 
+        3) your players will then make a call to the appropriate algorithm
+
+       
+        Both PlayerAlgorithmA  and PlayerAlgorithmB will be passed on as AdversarialSearchPlayer(Player) in two parameters: (GameStateProblem(b1, b1, 0) and player_idx = (0), 
+        where GameStateProblem(b1, b1, 0) = GameStateProblem(initial_board_state, goal_board_state, player_idx)
+        Here, PlayerA is the maximing player (PlayerA is the current turn player),
+        and PlayerB is the minixing player (PlayerB is the next turn player)
+
+        """
+        
+        super().__init__(gsp.adversarial_search_method)
+        self.gsp = gsp
+        self.b = BoardState()
+        self.player_idx = player_idx
+
+    def policy(self, decode_state):
+        """
+        Here, the policy of the player is to consider the current decoded game state
+        and then correctly encode it and provide any additional required parameters to the
+        assigned policy_fnc (which in this case is gsp.adversarial_search_method), and then
+        return the result of self.policy_fnc
+        """
+        encoded_state_tup = tuple( self.b.encode_single_pos(s) for s in decode_state )
+        state_tup = tuple((encoded_state_tup, self.player_idx))
+        val_a, val_b, val_c = (1, 2, 3)
+        return self.policy_fnc(state_tup, val_a, val_b, val_c)
+    
+    # def PlayerAlgorithmA(self, player_idx):
+        
+        
+    #     # return AdversarialSearchPlayer(self, player_idx=0)
+    #     # return self.adversarial_search_method()
+    #     return self
+    
+    # def PlayerAlgorithmB(self, player_idx):
+
+    #     """
+    #     Similar to PlayerAlgorithmA,  PlayerAlgorithmB should allow to pass in two parameters: (GameStateProblem(b1, b1, 0) and player_idx = (1), 
+    #     however, both share the same GameStateProblem(b1, b1, 0) = GameStateProblem(initial_board_state, goal_board_state, player_idx)
+    #     And PlayerB is the next turn player, thus, PlayerB is the miniing player here. 
+
+    #     """
+    #     return
+
+
+# # Create a BoardState object
 # board = BoardState()
-# print("board.state", board.state)
+# # print("board.state", board.state)
 # curr_rules = Rules()
-# curr_rules.single_piece_actions(board, 10)
-# print("single_piece_actions", curr_rules.single_piece_actions(board, 10))
-# curr_rules.single_ball_actions(board, 0)
+# # curr_rules.single_piece_actions(board, 10)
+# # print("single_piece_actions", curr_rules.single_piece_actions(board, 10))
+# # curr_rules.single_ball_actions(board, 0)
 # new_game = GameSimulator(2)
-# new_game.generate_valid_actions(0)
+# print(new_game.generate_valid_actions(0))
